@@ -1,4 +1,3 @@
-from datetime import datetime
 from typing import AsyncGenerator
 
 from fastapi import Depends
@@ -57,6 +56,12 @@ class User(SQLAlchemyBaseUserTable[int], Base):
         default=False,
         nullable=False
     )
+    register_timestamp: Mapped[DateTime] = mapped_column(
+        DateTime(timezone=True),
+        default=func.current_date(),
+        nullable=False
+    )
+
 
 
 engine = create_async_engine(DATABASE_URL)
