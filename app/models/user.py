@@ -1,6 +1,4 @@
-import datetime
-
-from sqlalchemy import MetaData, Table, Column, Integer, String, TIMESTAMP, ForeignKey, JSON, Boolean
+from sqlalchemy import MetaData, Table, Column, Integer, String, DateTime, ForeignKey, JSON, Boolean, func, TIMESTAMP
 
 
 metadata = MetaData()
@@ -26,4 +24,3 @@ user = Table(
     Column("is_superuser", Boolean, default=False, nullable=False),
     Column("is_verified", Boolean, default=False, nullable=False),
 )
-
