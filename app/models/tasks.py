@@ -1,6 +1,5 @@
-import datetime
-
-from sqlalchemy import MetaData, Table, Column, Integer, String, ForeignKey, JSON, Boolean, TIMESTAMP
+import datetime as dt
+from sqlalchemy import MetaData, Table, Column, Integer, String, ForeignKey, JSON, Boolean, TIMESTAMP, func, DateTime
 
 from app.models.user import user
 
@@ -15,5 +14,6 @@ task = Table(
     Column("start_timestamp", TIMESTAMP, arbitrary_types_allowed=True, nullable=False),
     Column("user_creator_id", Integer, ForeignKey(user.c.id)),
     Column("user_executor_id", Integer, ForeignKey(user.c.id)),
-    Column("end_timestamp", TIMESTAMP, arbitrary_types_allowed=True, nullable=True)
+    Column("end_timestamp", DateTime(timezone=True), nullable=True),
+    Column("status", String, default=None, nullable=True),
 )
