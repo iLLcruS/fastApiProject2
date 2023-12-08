@@ -2,6 +2,11 @@
 from fastapi import FastAPI
 from fastapi_users import fastapi_users, FastAPIUsers
 
+from app.auth.auth import auth_backend
+from app.auth.database_con import User
+from app.auth.manager import get_user_manager
+from app.auth.schemas import UserRead, UserCreate
+
 from auth.auth import auth_backend
 from auth.database_con import User
 from auth.manager import get_user_manager
