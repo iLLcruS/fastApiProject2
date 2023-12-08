@@ -3,7 +3,7 @@ from fastapi_users.authentication import JWTStrategy
 
 from config import SECRET_KEY_JWT
 
-cookie_transport = CookieTransport(cookie_max_age=3600)
+cookie_transport = CookieTransport(cookie_name="trello", cookie_max_age=3600)
 
 
 SECRET = f"{SECRET_KEY_JWT}"

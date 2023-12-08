@@ -1,33 +1,29 @@
-# main.py
-from fastapi import FastAPI, HTTPException, Depends
-from fastapi.security import OAuth2PasswordBearer
-from sqlalchemy import create_engine, Column, Integer, String, ForeignKey
-from sqlalchemy.ext.declarative import declarative_base
-from sqlalchemy.orm import sessionmaker, Session
-from typing import List, Optional
 
-app = FastAPI()
+from fastapi import FastAPI
+from fastapi_users import fastapi_users, FastAPIUsers
 
-DATABASE_URL = "postgresql://postgres:Reubjeon512@localhost/fastapi"
+from auth.auth import auth_backend
+from auth.database_con import User
+from auth.manager import get_user_manager
+from auth.schemas import UserRead, UserCreate
 
-engine = create_engine(DATABASE_URL)
+fastapi_users = FastAPIUsers[User, int](
+    get_user_manager,
+    [auth_backend],
+)
 
-SessionLocal = sessionmaker(autocommit=False, autoflush=False, bind=engine)
+app = FastAPI(
+    title="Trello(demo)"
+)
 
+app.include_router(
+    fastapi_users.get_auth_router(auth_backend),
+    prefix="/auth/jwt",
+    tags=["auth"],
+)
 
-def get_db():
-    db = SessionLocal()
-    try:
-        yield db
-    finally:
-        db.close()
-
-
-# Определение моделей
-Base = declarative_base()
-
-# Создание таблиц
-Base.metadata.create_all(bind=engine)
-
-# Для запуска приложения используйте следующую команду:
-# uvicorn main:app --reload
+app.include_router(
+    fastapi_users.get_register_router(UserRead, UserCreate),
+    prefix="/auth",
+    tags=["auth"],
+)
