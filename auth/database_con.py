@@ -31,15 +31,6 @@ class User(SQLAlchemyBaseUserTable[int], Base):
         String(),
         nullable=False
     )
-    password: Mapped[str] = mapped_column(
-        String(),
-        nullable=False
-    )
-    registered_T: Mapped[datetime.datetime] = mapped_column(
-        TIMESTAMP,
-        default=datetime.datetime.utcnow(),
-        nullable=False
-    )
     role_id: Mapped[int] = mapped_column(
         Integer(),
         ForeignKey(role.c.id),
