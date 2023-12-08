@@ -7,11 +7,6 @@ from app.auth.database_con import User
 from app.auth.manager import get_user_manager
 from app.auth.schemas import UserRead, UserCreate
 
-from auth.auth import auth_backend
-from auth.database_con import User
-from auth.manager import get_user_manager
-from auth.schemas import UserRead, UserCreate
-
 fastapi_users = FastAPIUsers[User, int](
     get_user_manager,
     [auth_backend],
