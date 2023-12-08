@@ -19,8 +19,6 @@ user = Table(
     Column("id", Integer, primary_key=True),
     Column("name", String, nullable=False),
     Column("username", String, nullable=False),
-    Column("password", String, nullable=False),
-    Column("registered_T", TIMESTAMP, default=datetime.datetime.utcnow()),
     Column("role_id", Integer, ForeignKey("role.id")),
     Column("email", String(length=320), unique=True, index=True, nullable=False),
     Column("hashed_password", String(length=1024), nullable=False),
