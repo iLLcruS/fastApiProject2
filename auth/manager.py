@@ -10,14 +10,6 @@ from auth.database_con import User, get_user_db
 SECRET = f"{SECRET_KEY_JWT_VERIFICATION_RESET}"
 
 mail_config = {
-    "MAIL_USERNAME": "rostovskii.1020@gmail.com",
-    "MAIL_PASSWORD": "Reubjeon512",
-    "MAIL_FROM": "rostovskii.1020@gmail.com",
-    "MAIL_PORT": 587,
-    "MAIL_SERVER": "smtp.gmail.com",
-    "MAIL_FROM_NAME": "Vlad from Trello",
-    "MAIL_TLS": True,
-    "MAIL_SSL": False,
 }
 
 mail = FastMail(mail_config)
@@ -28,8 +20,8 @@ class UserManager(IntegerIDMixin, BaseUserManager[User, int]):
     verification_token_secret = SECRET
 
     async def on_after_register(self, user: User, request: Optional[Request] = None):
-        subject = "Registration Successful"
-        body = f"Thank you for registering, {user.name}! Your email: {user.email}"
+        subject = "Thank you for registration! "
+        body = f"Your account was registered, welcome, {user.name}!"
 
         message = MessageSchema(
             subject=subject,
