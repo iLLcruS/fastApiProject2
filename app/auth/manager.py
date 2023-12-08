@@ -5,7 +5,7 @@ from fastapi_mail import FastMail, MessageSchema
 from fastapi_users import BaseUserManager, IntegerIDMixin, exceptions, models, schemas
 
 from config import SECRET_KEY_JWT_VERIFICATION_RESET
-from auth.database_con import User, get_user_db
+from app.auth.database_con import User, get_user_db
 
 SECRET = f"{SECRET_KEY_JWT_VERIFICATION_RESET}"
 

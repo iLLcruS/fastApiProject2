@@ -5,11 +5,11 @@ from fastapi import Depends
 from fastapi_users.db import SQLAlchemyBaseUserTable, SQLAlchemyUserDatabase
 from sqlalchemy.ext.asyncio import AsyncSession, async_sessionmaker, create_async_engine
 from sqlalchemy.ext.declarative import declarative_base
-from sqlalchemy.orm import DeclarativeBase, Mapped, declared_attr, mapped_column
-from sqlalchemy import Boolean, ForeignKey, Integer, String, func, select, TIMESTAMP
+from sqlalchemy.orm import DeclarativeBase, Mapped, mapped_column
+from sqlalchemy import Boolean, ForeignKey, Integer, String, TIMESTAMP
 
 from config import DB_HOST, DB_NAME, DB_PASS, DB_PORT, DB_USER
-from models.user import role
+from app.models.user import role
 
 DATABASE_URL = f"postgresql+asyncpg://{DB_USER}:{DB_PASS}@{DB_HOST}:{DB_PORT}/{DB_NAME}"
 Base: DeclarativeBase = declarative_base()
