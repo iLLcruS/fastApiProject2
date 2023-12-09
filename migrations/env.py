@@ -8,6 +8,7 @@ from alembic import context
 from config import DB_USER, DB_PASS, DB_HOST, DB_NAME, DB_PORT
 from app.models.user import metadata as metadata_user
 from app.models.tasks import metadata as metadata_tasks
+from app.models.logger import metadata as metadata_logger
 
 # this is the Alembic Config object, which provides
 # access to the values within the .ini file in use.
@@ -29,7 +30,7 @@ if config.config_file_name is not None:
 # for 'autogenerate' support
 # from myapp import mymodel
 # target_metadata = mymodel.Base.metadata
-target_metadata = [metadata_user, metadata_tasks]
+target_metadata = [metadata_user, metadata_tasks, metadata_logger]
 
 # other values from the config, defined by the needs of env.py,
 # can be acquired:
