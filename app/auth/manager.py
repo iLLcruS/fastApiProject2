@@ -3,16 +3,15 @@ from typing import Optional
 from fastapi import Depends, Request
 from fastapi_mail import FastMail, MessageSchema
 from fastapi_users import BaseUserManager, IntegerIDMixin, exceptions, models, schemas
+from fastapi_users_db_sqlalchemy import SQLAlchemyUserDatabase
+from sqlalchemy import insert
+from sqlalchemy.ext.asyncio import AsyncSession
 
+from app.models.logger import logger
 from config import SECRET_KEY_JWT_VERIFICATION_RESET
-from .database_con import User, get_user_db
+from app.auth.database_con import User, get_user_db, engine
 
 SECRET = f"{SECRET_KEY_JWT_VERIFICATION_RESET}"
-
-mail_config = {
-}
-
-mail = FastMail(mail_config)
 
 
 class UserManager(IntegerIDMixin, BaseUserManager[User, int]):
@@ -20,22 +19,13 @@ class UserManager(IntegerIDMixin, BaseUserManager[User, int]):
     verification_token_secret = SECRET
 
     async def on_after_register(self, user: User, request: Optional[Request] = None):
-        subject = "Thank you for registration! "
-        body = f"Your account was registered, welcome, {user.name}!"
 
-        message = MessageSchema(
-            subject=subject,
-            recipients=[user.email],
-            body=body,
-            subtype="html"
-        )
-
-        try:
-            await mail.send_message(message)
-            print(f"Email sent to {user.email} for user {user.id} registration.")
-        except Exception as e:
-            print(f"Failed to send email. Error: {str(e)}")
-        print(f"User {user.id} has registered. Email was sent")
+        async with AsyncSession(engine) as session:
+            try:
+                await log_operation(session, 'Registered', user.id, user.email)
+            except Exception as e:
+                await log_operation(session, f"Registered Failed: {str(e)}", user.id, user.email)
+        print(f"User {user.id} has registered.")
 
     async def create(
             self,
@@ -68,3 +58,14 @@ class UserManager(IntegerIDMixin, BaseUserManager[User, int]):
 
 async def get_user_manager(user_db=Depends(get_user_db)):
     yield UserManager(user_db)
+
+
+async def log_operation(session: AsyncSession, subject: str, user_id: int, email: str):
+    log_data = {
+        "log_subject": subject,
+        "log_id_user": user_id,
+        "log_email_user": email,
+    }
+    log_query = insert(logger).values(log_data)
+    await session.execute(log_query)
+    await session.commit()
