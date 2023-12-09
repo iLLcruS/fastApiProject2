@@ -28,6 +28,7 @@ class User(SQLAlchemyBaseUserTable[int], Base):
     )
     username: Mapped[str] = mapped_column(
         String(),
+        unique=True,
         nullable=False
     )
     role_id: Mapped[int] = mapped_column(
