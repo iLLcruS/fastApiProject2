@@ -1,6 +1,4 @@
 import datetime
-import sqlalchemy
-import fastapi_users.router
 from fastapi import APIRouter, Depends
 from fastapi import Request
 from fastapi_users_db_sqlalchemy import SQLAlchemyUserDatabase
@@ -8,8 +6,7 @@ from pydantic import BaseModel
 from sqlalchemy.ext.asyncio import AsyncSession
 from starlette.responses import RedirectResponse
 from sqlalchemy import select, update
-from app.auth.database_con import User, get_user_db, get_async_session
-from app.models.user import user as user_table
+from app.auth.database_con import get_user_db, get_async_session
 import jwt
 from app.auth.database_con import engine
 from app.models.tasks import task
@@ -20,7 +17,7 @@ from config import SECRET_KEY_JWT
 router = APIRouter(
 
     prefix="/task",
-    tags=["tasks"],
+    tags=["router"],
 )
 
 
@@ -76,7 +73,6 @@ class TaskDeleteData(BaseModel):
     task_id: int
 
 
-
 @router.post("/{user_name}/add")
 async def create_task(request: Request, user_name: str, task_data: Task,
                       user_db: SQLAlchemyUserDatabase = Depends(get_user_db)):
@@ -124,3 +120,20 @@ async def erase_task(request: Request, user_name: str,task_id: str,
         return f'Successfully deleted task with id - {task_id}'
     else:
         return {"message": "Error: value title or id must be not empty"}
+
+
+@router.get("/get")
+async def get_tasks(task_title: str, session: AsyncSession = Depends(get_async_session)):
+    query = select(task).where(task.c.title == task_title)
+    result = await session.execute(query)
+    await session.close()
+    return result.fetchall()
+
+class Status(BaseModel):
+    status: str
+
+@router.post("/{username}/set/status/{}")
+async def set_status(request: Request, user_name: str,task_id: int,
+                     status = Status,
+                     session: AsyncSession = Depends(get_async_session)):
+    query = update(task).where(task.c.id == int(task_id)).values()
