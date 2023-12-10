@@ -10,6 +10,7 @@ from app.auth.database_con import get_user_db, get_async_session, engine
 from app.core.custom_routers_func import get_user_id_from_token, query_execute, log_operation
 from app.models.logger import logger
 from app.models.tasks import task
+from app.models.status import status as status_table
 from config import SECRET_KEY_JWT
 
 router = APIRouter(
@@ -124,5 +125,73 @@ async def set_status(request: Request, user_name: str, task_id: int,
                      status=Status,
                      session: AsyncSession = Depends(get_async_session)):
     query = update(task).where(task.c.id == int(task_id)).values()
+
+@router.post("/{user_name}/status/create/{status_name}")
+async def create_status(request: Request,
+                        status_name: str,
+                        user_name: str,
+                        session: AsyncSession = Depends(get_async_session)):
+    query = insert(status_table).values(name=status_name)
+    await query_execute(query, session)
+    return "Successfully created status!"
+
+
+@router.post("/{user_name}/status/set/{status_id}/task/{task_id}")
+async def set_status(request: Request,
+                     status_id: int,
+                     user_name: str,
+                     task_id: int,
+                     session: AsyncSession = Depends(get_async_session)):
+    query = update(task).where(task.c.id == task_id).values(status_id=status_id)
+    await query_execute(query, session)
+    return "Successfully set status!"
+
+
+@router.delete("/{user_name}/status/delete/{status_id}")
+async def delete_status(request: Request,
+                        status_id: int,
+                        user_name: str,
+                        session: AsyncSession = Depends(get_async_session)):
+    query = delete(status_table).where(status_table.c.id == status_id)
+    await query_execute(query, session)
+    return "Successfully deleted status!"
+
+@router.post("/{user_name}/status/update/{status_id}")
+async def update_status(request: Request,
+                        status_id: int,
+                        user_name: str,
+                        new_name: str,
+                        session: AsyncSession = Depends(get_async_session)):
+    query = update(status_table).where(status_table.c.id == status_id).values(name=new_name)
+    await query_execute(query, session)
+    return "Successfully updated status!"
+
+@router.get("/{user_name}/status/get/{status_name}")
+async def get_status(request: Request,
+                        user_name: str,
+                        status_name: str,
+                        session: AsyncSession = Depends(get_async_session)):
+    query = select(status_table).where(status_table.c.name == status_name)
+    result = await query_execute(query, session)
+    status = result.fetchone()
+
+    return {"id": status[0], "name": status[1]}
+
+@router.get("/{user_name}/statuses/get")
+async def get_statuses(request: Request,
+                        user_name: str,
+                        session: AsyncSession = Depends(get_async_session)):
+    query = select(status_table)
+    result = await query_execute(query, session)
+    statuses_raw = result.fetchall()
+    statuses = []
+    for tup in statuses_raw:
+        status_data = {
+            "id": tup[0],
+            "name": tup[1]
+        }
+        statuses.append(status_data)
+    return statuses
+
 
 
