@@ -7,6 +7,7 @@ from pydantic import BaseModel
 from sqlalchemy import select, update, insert, delete
 from sqlalchemy.ext.asyncio import AsyncSession
 from app.auth.database_con import get_user_db, get_async_session, engine
+from app.core.custom_routers_func import get_user_id_from_token, query_execute, log_operation
 from app.models.logger import logger
 from app.models.tasks import task
 from config import SECRET_KEY_JWT
@@ -125,38 +126,3 @@ async def set_status(request: Request, user_name: str, task_id: int,
     query = update(task).where(task.c.id == int(task_id)).values()
 
 
-async def log_operation(session: AsyncSession, subject: str, user_id: int, email: str):
-    log_data = {
-        "log_subject": subject,
-        "log_id_user": user_id,
-        "log_email_user": email,
-    }
-    log_query = insert(logger).values(log_data)
-    await session.execute(log_query)
-    await session.commit()
-
-
-def decode_user(token: str):
-    """
-    :param token: jwt token
-    :return:
-    """
-    decoded_data = jwt.decode(jwt=token,
-                              key=f'{SECRET_KEY_JWT}',
-                              algorithms=["HS256"],
-                              audience="fastapi-users:auth"
-                              )
-    return decoded_data
-
-
-def get_user_id_from_token(request: Request) -> int:
-    cookie = request.cookies.get("trello")
-    user_data = decode_user(cookie)
-    return int(user_data['sub'])
-
-
-async def query_execute(query, session: AsyncSession):
-    result = await session.execute(query)
-    await session.commit()
-    await session.close()
-    return result
