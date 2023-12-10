@@ -7,6 +7,7 @@ from fastapi_users_db_sqlalchemy import SQLAlchemyUserDatabase
 from sqlalchemy import insert
 from sqlalchemy.ext.asyncio import AsyncSession
 
+from app.core.custom_routers_func import log_operation
 from app.models.logger import logger
 from config import SECRET_KEY_JWT_VERIFICATION_RESET
 from app.auth.database_con import User, get_user_db, engine
@@ -58,14 +59,3 @@ class UserManager(IntegerIDMixin, BaseUserManager[User, int]):
 
 async def get_user_manager(user_db=Depends(get_user_db)):
     yield UserManager(user_db)
-
-
-async def log_operation(session: AsyncSession, subject: str, user_id: int, email: str):
-    log_data = {
-        "log_subject": subject,
-        "log_id_user": user_id,
-        "log_email_user": email,
-    }
-    log_query = insert(logger).values(log_data)
-    await session.execute(log_query)
-    await session.commit()
