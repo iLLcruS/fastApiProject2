@@ -111,7 +111,7 @@ async def get_tasks(task_title: str, session: AsyncSession = Depends(get_async_s
     query = select(task).where(task.c.title == task_title)
     result = await session.execute(query)
     await session.close()
-    return result.fetchall()
+    return result.all()
 
 
 class Status(BaseModel):
@@ -144,7 +144,7 @@ def decode_user(token: str):
     decoded_data = jwt.decode(jwt=token,
                               key=f'{SECRET_KEY_JWT}',
                               algorithms=["HS256"],
-                              audience="Trello Auth"
+                              audience="fastapi-users:auth"
                               )
     return decoded_data
 
