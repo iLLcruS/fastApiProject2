@@ -1,4 +1,3 @@
-
 import jwt
 from fastapi import APIRouter, Depends, Request
 from fastapi.responses import RedirectResponse
@@ -16,7 +15,7 @@ from config import SECRET_KEY_JWT
 router = APIRouter(
 
     prefix="/task",
-    tags=["router"],
+    tags=["tasks"],
 )
 
 
@@ -24,6 +23,7 @@ class Task(BaseModel):
     title: str
     description: str
     user_executor_id: int
+    status_id: int
 
 
 class UpdateTask(BaseModel):
@@ -34,6 +34,7 @@ class UpdateTask(BaseModel):
 
 class TaskDeleteData(BaseModel):
     task_id: int
+
 
 @router.get("")
 async def redirect_to_current_user_tasks(request: Request, user_db: SQLAlchemyUserDatabase = Depends(get_user_db)):
@@ -56,6 +57,7 @@ async def create_task(request: Request, user_name: str, task_data: Task,
                 description=task_data.description,
                 user_executor_id=task_data.user_executor_id,
                 user_creator_id=user_id,
+                status_id=task_data.status_id,
             )
             await query_execute(query, session)
             await log_operation(session, "Created Task", user_id, f'{user_email.email}')
@@ -93,7 +95,8 @@ async def update_task(request: Request, user_name: str, task_id: int, task_data:
 
 @router.delete("/{user_name}/erase/{task_id}")
 async def erase_task(request: Request, user_name: str, task_id: str,
-                     session: AsyncSession = Depends(get_async_session), user_db: SQLAlchemyUserDatabase = Depends(get_user_db)):
+                     session: AsyncSession = Depends(get_async_session),
+                     user_db: SQLAlchemyUserDatabase = Depends(get_user_db)):
     user_id = get_user_id_from_token(request)
     user_email = await user_db.get(user_id)
 
@@ -119,12 +122,6 @@ async def get_tasks(task_title: str, session: AsyncSession = Depends(get_async_s
 class Status(BaseModel):
     status: str
 
-
-@router.post("/{username}/set/status/{}")
-async def set_status(request: Request, user_name: str, task_id: int,
-                     status=Status,
-                     session: AsyncSession = Depends(get_async_session)):
-    query = update(task).where(task.c.id == int(task_id)).values()
 
 @router.post("/{user_name}/status/create/{status_name}")
 async def create_status(request: Request,
@@ -156,31 +153,36 @@ async def delete_status(request: Request,
     await query_execute(query, session)
     return "Successfully deleted status!"
 
+
 @router.post("/{user_name}/status/update/{status_id}")
 async def update_status(request: Request,
                         status_id: int,
                         user_name: str,
                         new_name: str,
                         session: AsyncSession = Depends(get_async_session)):
+    unbind = update(task).where(task.c.status_id == status_id).values(status_id=None)
+    await query_execute(unbind, session)
     query = update(status_table).where(status_table.c.id == status_id).values(name=new_name)
     await query_execute(query, session)
     return "Successfully updated status!"
 
+
 @router.get("/{user_name}/status/get/{status_name}")
 async def get_status(request: Request,
-                        user_name: str,
-                        status_name: str,
-                        session: AsyncSession = Depends(get_async_session)):
+                     user_name: str,
+                     status_name: str,
+                     session: AsyncSession = Depends(get_async_session)):
     query = select(status_table).where(status_table.c.name == status_name)
     result = await query_execute(query, session)
     status = result.fetchone()
 
     return {"id": status[0], "name": status[1]}
 
+
 @router.get("/{user_name}/statuses/get")
 async def get_statuses(request: Request,
-                        user_name: str,
-                        session: AsyncSession = Depends(get_async_session)):
+                       user_name: str,
+                       session: AsyncSession = Depends(get_async_session)):
     query = select(status_table)
     result = await query_execute(query, session)
     statuses_raw = result.fetchall()
@@ -192,6 +194,3 @@ async def get_statuses(request: Request,
         }
         statuses.append(status_data)
     return statuses
-
-
-
