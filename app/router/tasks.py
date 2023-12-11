@@ -1,15 +1,14 @@
-import jwt
-from fastapi import APIRouter, Depends, Request
+from fastapi import APIRouter, Depends, Request, UploadFile
 from fastapi.responses import RedirectResponse
 from fastapi_users_db_sqlalchemy import SQLAlchemyUserDatabase
 from pydantic import BaseModel
 from sqlalchemy import select, update, insert, delete, cast, ARRAY, Integer
 from sqlalchemy.ext.asyncio import AsyncSession
-from app.auth.database_con import get_user_db, get_async_session, engine
+from app.auth.database_con import get_user_db, get_async_session
 from app.core.custom_routers_func import get_user_id_from_token, query_execute, execute_task_operation
 from app.models.tasks import task
 from app.models.status import status as status_table
-from sqlalchemy import or_, and_
+from sqlalchemy import or_
 
 router = APIRouter(
 
@@ -44,10 +43,9 @@ async def redirect_to_current_user_tasks(request: Request, user_db: SQLAlchemyUs
 
 
 @router.post("/{user_name}/add")
-async def create_task(request: Request, user_name: str, task_data: Task,
+async def create_task(request: Request, user_name: str, task_data: Task, image_file: UploadFile,
                       user_db: SQLAlchemyUserDatabase = Depends(get_user_db)):
     user_id = get_user_id_from_token(request)
-
     query = insert(task).values(
         title=task_data.title,
         description=task_data.description,
@@ -290,7 +288,7 @@ async def add_user_to_visible(request: Request,
                               task_id: int,
                               session: AsyncSession = Depends(get_async_session)):
     await add_to_allowed_users(session, task_id, user_id)
-    return "All ok"
+    return "User was add"
 
 
 @router.get("/{user_name}/task/{task_id}/remove/user/{user_id}")
@@ -300,4 +298,4 @@ async def remove_user_from_visible(request: Request,
                                    task_id: int,
                                    session: AsyncSession = Depends(get_async_session)):
     await remove_from_allowed_users(session, task_id, user_id)
-    return "All ok!"
+    return "User was delete"
