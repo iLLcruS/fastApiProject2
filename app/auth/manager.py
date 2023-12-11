@@ -1,14 +1,11 @@
 from typing import Optional
 
 from fastapi import Depends, Request
-from fastapi_mail import FastMail, MessageSchema
+from fastapi_mail import FastMail, MessageType, ConnectionConfig, MessageSchema
 from fastapi_users import BaseUserManager, IntegerIDMixin, exceptions, models, schemas
-from fastapi_users_db_sqlalchemy import SQLAlchemyUserDatabase
-from sqlalchemy import insert
 from sqlalchemy.ext.asyncio import AsyncSession
 
 from app.core.custom_routers_func import log_operation
-from app.models.logger import logger
 from config import SECRET_KEY_JWT_VERIFICATION_RESET
 from app.auth.database_con import User, get_user_db, engine
 
@@ -19,6 +16,16 @@ class UserManager(IntegerIDMixin, BaseUserManager[User, int]):
     reset_password_token_secret = SECRET
     verification_token_secret = SECRET
 
+    async def send_registration_notification(self, user: User):
+
+        message = MessageSchema(
+            subject="Registration Notification",
+            recipients=[user.email],
+            body=f"Dear {user.email},\n\nThank you for registering with us!\n\nBest regards,\nTrello",
+            subtype=MessageType.plain
+        )
+        await self.send_email(message)
+
     async def on_after_register(self, user: User, request: Optional[Request] = None):
 
         async with AsyncSession(engine) as session:
@@ -27,6 +34,27 @@ class UserManager(IntegerIDMixin, BaseUserManager[User, int]):
             except Exception as e:
                 await log_operation(session, f"Registered Failed: {str(e)}", user.id, user.email)
         print(f"User {user.id} has registered.")
+
+        await self.send_registration_notification(user)
+
+    async def send_email(message: MessageSchema):
+        connection_config = ConnectionConfig(
+            MAIL_USERNAME="rostovskii.1020@gmail.com",
+            MAIL_PASSWORD="orrd qjam nnjm cvjs",
+            MAIL_FROM="rostovskii.1020@gmail.com",
+            MAIL_PORT=587,
+            MAIL_SERVER="smtp.gmail.com",
+            MAIL_SSL_TLS=False,
+            MAIL_STARTTLS=True,
+            USE_CREDENTIALS=True,
+            MAIL_DEBUG=0,
+            MAIL_FROM_NAME="Trello",
+            SUPPRESS_SEND=0,
+            VALIDATE_CERTS=False,
+            TIMEOUT=30,
+        )
+        fm = FastMail(connection_config)
+        await fm.send_message(message)
 
     async def create(
             self,
