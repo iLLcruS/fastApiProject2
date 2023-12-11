@@ -12,7 +12,7 @@ from app.router.tasks import get_user_id_from_token, query_execute
 
 router_admin = APIRouter(
     prefix="/admin",
-    tags=["router"],
+    tags=["admin"],
 )
 
 
