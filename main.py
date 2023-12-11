@@ -6,6 +6,10 @@ from app.auth.auth import auth_backend
 from app.auth.database_con import User
 from app.auth.manager import get_user_manager
 from app.auth.schemas import UserRead, UserCreate
+from app.router.tasks import router as task_router
+from app.router.admin import router_admin as admin_router
+from app.router.board import router as board_router
+
 
 fastapi_users = FastAPIUsers[User, int](
     get_user_manager,
@@ -26,4 +30,15 @@ app.include_router(
     fastapi_users.get_register_router(UserRead, UserCreate),
     prefix="/auth",
     tags=["auth"],
+)
+
+app.include_router(
+    task_router
+)
+
+app.include_router(
+    admin_router
+)
+app.include_router(
+    board_router
 )
