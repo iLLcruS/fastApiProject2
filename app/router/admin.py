@@ -1,13 +1,13 @@
 from fastapi import APIRouter, Depends, HTTPException, status, Request
 from fastapi_users_db_sqlalchemy import SQLAlchemyUserDatabase
 from pydantic import BaseModel
-from sqlalchemy import select, update, delete
+from sqlalchemy import select, update, insert
 from sqlalchemy.ext.asyncio import AsyncSession
 
 from app.core.custom_routers_func import log_operation
 from app.auth.database_con import get_user_db, get_async_session, engine
 from app.models.logger import logger
-from app.models.user import user as User
+from app.models.user import user as User, role
 from app.router.tasks import get_user_id_from_token, query_execute
 
 router_admin = APIRouter(
@@ -23,6 +23,10 @@ class UpdateUserRoleData(BaseModel):
 class UpdateUserEmailData(BaseModel):
     email: str
 
+
+class UpdateRoleData(BaseModel):
+    id: int
+    name_role: str
 
 async def get_current_user_role(request: Request, user_db: SQLAlchemyUserDatabase = Depends(get_user_db)):
     current_user = await user_db.get(get_user_id_from_token(request))
@@ -83,26 +87,19 @@ async def update_user_role_id(update_data: UpdateUserRoleData,
             return "Error during user role update"
 
 
-@router_admin.post("/update/email")
-async def update_user_email(update_data: UpdateUserEmailData,
-                            user_name: str,
-                            request: Request,
-                            user_db: SQLAlchemyUserDatabase = Depends(get_user_db),
-                            ):
-    user_id = get_user_id_from_token(request)
-    user_email = await user_db.get(user_id)
+@router_admin.post("/add/role")
+async def create_role(request: Request, role_data: UpdateRoleData,
+                      user_db: SQLAlchemyUserDatabase = Depends(get_user_db)):
 
-    user_update_data = {"email": update_data.email}
-
-    user_update_condition = User.c.username == user_name
-
-    query = update(User).values(user_update_data).where(user_update_condition)
+    query = insert(role).values(
+        id=role_data.id,
+        name_role=role_data.name_role
+    )
+    success_message = "Role Add"
 
     async with AsyncSession(engine) as session:
         try:
             await query_execute(query, session)
-            await log_operation(session, "Updated User Email", user_id, f'{user_email.email}')
-            return f'User {user_name} email was updated to {update_data.email}'
+            return f'{success_message}'
         except Exception as e:
-            await log_operation(session, f"User Email Update Failed: {str(e)}", user_id, f'{user_email.email}')
-            return "Error during user email update"
+            raise HTTPException(status_code=500, detail=f"Internal Server Error: {str(e)}")
