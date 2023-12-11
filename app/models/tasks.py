@@ -1,8 +1,10 @@
 import datetime as dt
-from sqlalchemy import MetaData, Table, Column, Integer, String, ForeignKey, JSON, Boolean, TIMESTAMP, func, DateTime
+from sqlalchemy import MetaData, Table, Column, Integer, String, ForeignKey, JSON, Boolean, TIMESTAMP, func, DateTime, \
+    ARRAY
 
 from app.models.status import status
 from app.models.user import user
+from app.models.board import board as board_table
 
 
 metadata = MetaData()
@@ -17,4 +19,6 @@ task = Table(
     Column("user_creator_id", Integer, ForeignKey(user.c.id)),
     Column("user_executor_id", Integer, ForeignKey(user.c.id)),
     Column("status_id", Integer, ForeignKey(status.c.id), nullable=True)
+    Column("status_id", Integer, ForeignKey(status.c.id), nullable=True),
+    Column("board_id", Integer, ForeignKey(board_table.c.id)),
 )
