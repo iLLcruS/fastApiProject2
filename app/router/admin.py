@@ -1,7 +1,7 @@
 from fastapi import APIRouter, Depends, HTTPException, status, Request
 from fastapi_users_db_sqlalchemy import SQLAlchemyUserDatabase
 from pydantic import BaseModel
-from sqlalchemy import select, update
+from sqlalchemy import select, update, delete
 from sqlalchemy.ext.asyncio import AsyncSession
 
 from app.core.custom_routers_func import log_operation
