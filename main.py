@@ -9,6 +9,7 @@ from app.auth.schemas import UserRead, UserCreate
 from app.router.tasks import router as task_router
 from app.router.admin import router_admin as admin_router
 from app.router.board import router as board_router
+from app.router.sendmail import router as mail_router
 
 
 fastapi_users = FastAPIUsers[User, int](
@@ -42,3 +43,8 @@ app.include_router(
 app.include_router(
     board_router
 )
+app.include_router(
+    mail_router
+)
+
+
