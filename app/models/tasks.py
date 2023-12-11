@@ -27,4 +27,5 @@ task = Table(
     Column("video_url", String, nullable=True),
     Column("audio_url", String, nullable=True),
     Column("image_content", LargeBinary, nullable=True),
+    Column("keywords", ARRAY(String), nullable=True),
 )

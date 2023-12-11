@@ -1,11 +1,13 @@
-from fastapi import APIRouter, Depends, Request, UploadFile
+from typing import List
+
+from fastapi import APIRouter, Depends, Request, UploadFile, HTTPException
 from fastapi.responses import RedirectResponse
 from fastapi_users_db_sqlalchemy import SQLAlchemyUserDatabase
 from pydantic import BaseModel
 from sqlalchemy import select, update, insert, delete, cast, ARRAY, Integer
 from sqlalchemy.ext.asyncio import AsyncSession
-from app.auth.database_con import get_user_db, get_async_session
-from app.core.custom_routers_func import get_user_id_from_token, query_execute, execute_task_operation
+from app.auth.database_con import get_user_db, get_async_session, engine
+from app.core.custom_routers_func import get_user_id_from_token, query_execute, execute_task_operation, log_operation
 from app.models.tasks import task
 from app.models.status import status as status_table
 from sqlalchemy import or_
@@ -20,6 +22,7 @@ router = APIRouter(
 class Task(BaseModel):
     title: str
     description: str
+    keywords: List[str] = []
     user_executor_id: int
     status_id: int
 
@@ -43,20 +46,54 @@ async def redirect_to_current_user_tasks(request: Request, user_db: SQLAlchemyUs
 
 
 @router.post("/{user_name}/add")
-async def create_task(request: Request, user_name: str, task_data: Task, image_file: UploadFile,
+async def create_task(request: Request, user_name: str, task_data: Task,
                       user_db: SQLAlchemyUserDatabase = Depends(get_user_db)):
     user_id = get_user_id_from_token(request)
+    user_email = await user_db.get(user_id)
+
+    subtasks = []
+
+    if task_data.keywords:
+        for keyword in task_data.keywords:
+            if keyword.lower() in task_data.description.lower():
+                subtasks.append((f"{keyword.capitalize()} Task", f"Description for {keyword.capitalize()} Task"))
+
     query = insert(task).values(
         title=task_data.title,
         description=task_data.description,
         user_executor_id=task_data.user_executor_id,
         user_creator_id=user_id,
         status_id=task_data.status_id,
-        allowed_to_visible_user_ids=[user_id]
+        allowed_to_visible_user_ids=[user_id],
+        keywords=task_data.keywords,
     )
 
-    success_message = "Created Task"
-    return await execute_task_operation(request, user_id, query, success_message, user_db)
+    async with AsyncSession(engine) as session:
+        try:
+            result = await query_execute(query, session)
+            await log_operation(session, "Task Created", user_id, f'{user_email.email}')
+            task_id = result.fetchone()
+        except Exception as e:
+            raise HTTPException(status_code=500, detail=f"Внутренняя ошибка сервера: {str(e)}")
+
+    for subtask_title, subtask_description in subtasks:
+        subtask_query = insert(task).values(
+            title=subtask_title,
+            description=subtask_description,
+            user_creator_id=user_id,
+            user_executor_id=task_data.user_executor_id,
+            status_id=task_data.status_id,
+            parent_task_id=task_id,
+            allowed_to_visible_user_ids=[user_id],
+        )
+        async with AsyncSession(engine) as session:
+            try:
+                await query_execute(subtask_query, session)
+                await log_operation(session, "Task Created", user_id, f'{user_email.email}')
+            except Exception as e:
+                raise HTTPException(status_code=500, detail=f"Внутренняя ошибка сервера: {str(e)}")
+
+    return f': Создана задача: {user_id}'
 
 
 @router.post("/{username}/edit/{task_id}")
