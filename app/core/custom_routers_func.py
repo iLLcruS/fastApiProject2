@@ -1,9 +1,10 @@
+from fastapi_users_db_sqlalchemy import SQLAlchemyUserDatabase
 from sqlalchemy import insert
 from sqlalchemy.ext.asyncio import AsyncSession
-
+from app.auth.database_con import get_user_db, engine
 from app.models.logger import logger
 from config import SECRET_KEY_JWT
-from fastapi import Request
+from fastapi import Request, HTTPException, Depends
 import jwt
 
 def decode_user(token: str):
@@ -41,3 +42,17 @@ async def log_operation(session: AsyncSession, subject: str, user_id: int, email
     log_query = insert(logger).values(log_data)
     await session.execute(log_query)
     await session.commit()
+
+
+async def execute_task_operation(request: Request, user_id: int, query, success_message,
+                                 user_db: SQLAlchemyUserDatabase = Depends(get_user_db)):
+    user_email = await user_db.get(user_id)
+
+    async with AsyncSession(engine) as session:
+        try:
+            await query_execute(query, session)
+            await log_operation(session, success_message, user_id, f'{user_email.email}')
+            return f'{success_message}: {user_id}'
+        except Exception as e:
+            await log_operation(session, f"{success_message} Failed: {str(e)}", user_id, f'{user_email.email}')
+            raise HTTPException(status_code=500, detail=f"Internal Server Error: {str(e)}")
