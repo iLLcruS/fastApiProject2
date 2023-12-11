@@ -6,8 +6,7 @@ from pydantic import BaseModel
 from sqlalchemy import select, update, insert, delete
 from sqlalchemy.ext.asyncio import AsyncSession
 from app.auth.database_con import get_user_db, get_async_session, engine
-from app.core.custom_routers_func import get_user_id_from_token, query_execute, log_operation
-from app.models.logger import logger
+from app.core.custom_routers_func import get_user_id_from_token, query_execute, execute_task_operation
 from app.models.tasks import task
 from app.models.status import status as status_table
 from config import SECRET_KEY_JWT
@@ -48,23 +47,18 @@ async def redirect_to_current_user_tasks(request: Request, user_db: SQLAlchemyUs
 async def create_task(request: Request, user_name: str, task_data: Task,
                       user_db: SQLAlchemyUserDatabase = Depends(get_user_db)):
     user_id = get_user_id_from_token(request)
-    user_email = await user_db.get(user_id)
 
-    async with AsyncSession(engine) as session:
-        try:
-            query = insert(task).values(
-                title=task_data.title,
-                description=task_data.description,
-                user_executor_id=task_data.user_executor_id,
-                user_creator_id=user_id,
-                status_id=task_data.status_id,
-            )
-            await query_execute(query, session)
-            await log_operation(session, "Created Task", user_id, f'{user_email.email}')
-            return f'Task with title - {task_data.title} was created'
-        except Exception as e:
-            await log_operation(session, f"Task Creation Failed: {str(e)}", user_id, f'{user_email.email}')
-            return "Error during task creation"
+    query = insert(task).values(
+        title=task_data.title,
+        description=task_data.description,
+        user_executor_id=task_data.user_executor_id,
+        user_creator_id=user_id,
+        status_id=task_data.status_id,
+        allowed_to_visible_user_ids = [user_id]
+    )
+
+    success_message = "Created Task"
+    return await execute_task_operation(request, user_id, query, success_message, user_db)
 
 
 @router.post("/{username}/edit/{task_id}")
@@ -82,15 +76,9 @@ async def update_task(request: Request, user_name: str, task_id: int, task_data:
     task_update_condition = task.c.id == int(task_id)
 
     query = update(task).values(task_update_data).where(task_update_condition)
+    success_message = "Updated Task"
 
-    async with AsyncSession(engine) as session:
-        try:
-            await query_execute(query, session)
-            await log_operation(session, "Updated Task", user_id, f'{user_email.email}')
-            return f'Task with title - {task_data.title} was updated tp'
-        except Exception as e:
-            await log_operation(session, f"Task Updated Failed: {str(e)}", user_id, f'{user_email.email}')
-            return "Error during task updated"
+    return await execute_task_operation(request, user_id, query, success_message, user_db)
 
 
 @router.delete("/{user_name}/erase/{task_id}")
@@ -102,13 +90,9 @@ async def erase_task(request: Request, user_name: str, task_id: str,
 
     if id is not None:
         query = delete(task).where(task.c.id == int(task_id))
-        try:
-            await query_execute(query, session)
-            await log_operation(session, "Deleted Task", user_id, f'{user_email.email}')
-            return f'Task was deleted'
-        except Exception as e:
-            await log_operation(session, f"Task Deleted Failed: {str(e)}", user_id, f'{user_email.email}')
-            return "Error during task deleted"
+        success_message = "Deleted Task"
+
+        return await execute_task_operation(request, user_id, query, success_message, user_db)
 
 
 @router.get("/get")
