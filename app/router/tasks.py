@@ -3,7 +3,7 @@ from fastapi import APIRouter, Depends, Request
 from fastapi.responses import RedirectResponse
 from fastapi_users_db_sqlalchemy import SQLAlchemyUserDatabase
 from pydantic import BaseModel
-from sqlalchemy import select, update, insert, delete
+from sqlalchemy import select, update, insert, delete, cast, ARRAY, Integer
 from sqlalchemy.ext.asyncio import AsyncSession
 from app.auth.database_con import get_user_db, get_async_session, engine
 from app.core.custom_routers_func import get_user_id_from_token, query_execute, execute_task_operation
@@ -54,7 +54,7 @@ async def create_task(request: Request, user_name: str, task_data: Task,
         user_executor_id=task_data.user_executor_id,
         user_creator_id=user_id,
         status_id=task_data.status_id,
-        allowed_to_visible_user_ids = [user_id]
+        allowed_to_visible_user_ids=[user_id]
     )
 
     success_message = "Created Task"
@@ -97,14 +97,16 @@ async def erase_task(request: Request, user_name: str, task_id: str,
 
 @router.get("/get/{task_title}")
 async def get_task(request: Request,
-                    task_title: str, session: AsyncSession = Depends(get_async_session)):
+                   task_title: str, session: AsyncSession = Depends(get_async_session)):
     try:
         user_id = get_user_id_from_token(request)
     except Exception as e:
         print(e)
         return "403 FORBIDDEN"
 
-    query = select(task).where(and_(task.c.title == task_title, or_(task.c.user_executor_id == user_id,task.c.user_creator_id == user_id)))
+    query = select(task).where(or_(task.c.user_executor_id == user_id,
+                                   task.c.user_creator_id == user_id,
+                                   ))
     result_raw = await session.execute(query)
     result = result_raw.fetchone()
     await session.close()
@@ -120,8 +122,14 @@ async def get_task(request: Request,
 
     if result is not None:
         data = {column_names[i]: result[i] for i in range(len(column_names))}
-        response.append(data)
 
+        user_ids = await get_allowed_user_id(session, data["id"])
+
+        if user_id in user_ids:
+            response.append(data)
+
+    if result is None:
+        return "404 Not found"
     return response
 
 
@@ -134,7 +142,10 @@ async def get_tasks(request: Request,
         print(e)
         return "403 FORBIDDEN"
 
-    query = select(task).where(or_(task.c.user_executor_id == user_id,task.c.user_creator_id == user_id))
+    query = select(task).where(or_(task.c.user_executor_id == user_id,
+                                   task.c.user_creator_id == user_id,
+                                   cast([await get_allowed_user_id(session, )], ARRAY(Integer)).overlap(
+                                       task.c.allowed_to_visible_user_ids)))
     result_raw = await session.execute(query)
     result = result_raw.fetchall()
     await session.close()
@@ -152,9 +163,17 @@ async def get_tasks(request: Request,
         data["status_id"] = tup[6]
         data["board_id"] = tup[7]
         data["parent_task_id"] = tup[8]
+
+        user_ids = await get_allowed_user_id(session, data["id"])
+
+        if user_id in user_ids:
+            response.append(data)
+
         response.append(data)
 
     return response
+
+
 class Status(BaseModel):
     status: str
 
@@ -231,6 +250,7 @@ async def get_statuses(request: Request,
         statuses.append(status_data)
     return statuses
 
+
 async def add_to_allowed_users(session: AsyncSession, task_id: int, user_id: int):
     query = select(task).where(task.c.id == task_id)
     result = await query_execute(query, session)
@@ -238,8 +258,15 @@ async def add_to_allowed_users(session: AsyncSession, task_id: int, user_id: int
     list_allowed_users: list = result.fetchone()[9]
     print(list_allowed_users)
     list_allowed_users.append(user_id)
-    query = update(task).where(task.c.id == task_id).values(allowed_to_visible_user_ids = list_allowed_users)
+    query = update(task).where(task.c.id == task_id).values(allowed_to_visible_user_ids=list_allowed_users)
     await query_execute(query, session)
+
+
+async def get_allowed_user_id(session: AsyncSession, task_id: int):
+    query = select(task).where(task.c.id == task_id)
+    result = await query_execute(query, session)
+    list_allowed_users: list = result.fetchone()[9]
+    return list_allowed_users
 
 
 async def remove_from_allowed_users(session: AsyncSession, task_id: int, user_id: int):
@@ -252,23 +279,25 @@ async def remove_from_allowed_users(session: AsyncSession, task_id: int, user_id
         list_allowed_users.remove(user_id)
     except Exception as e:
         ...
-    query = update(task).where(task.c.id == task_id).values(allowed_to_visible_user_ids = list_allowed_users)
+    query = update(task).where(task.c.id == task_id).values(allowed_to_visible_user_ids=list_allowed_users)
     await query_execute(query, session)
+
 
 @router.get("/{user_name}/task/{task_id}/add/user/{user_id}")
 async def add_user_to_visible(request: Request,
-                        user_name: str,
-                        user_id: int,
-                        task_id: int,
-                        session: AsyncSession = Depends(get_async_session)):
+                              user_name: str,
+                              user_id: int,
+                              task_id: int,
+                              session: AsyncSession = Depends(get_async_session)):
     await add_to_allowed_users(session, task_id, user_id)
     return "All ok"
 
+
 @router.get("/{user_name}/task/{task_id}/remove/user/{user_id}")
 async def remove_user_from_visible(request: Request,
-                        user_name: str,
-                        user_id: int,
-                        task_id: int,
-                        session: AsyncSession = Depends(get_async_session)):
+                                   user_name: str,
+                                   user_id: int,
+                                   task_id: int,
+                                   session: AsyncSession = Depends(get_async_session)):
     await remove_from_allowed_users(session, task_id, user_id)
     return "All ok!"

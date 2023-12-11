@@ -5,6 +5,7 @@ from app.auth.database_con import get_async_session
 from app.models.board import board as board_table
 from app.core.custom_routers_func import query_execute
 from fastapi import APIRouter, Request, Depends
+from app.core.custom_routers_func import get_user_id_from_token
 
 router = APIRouter(
 
@@ -19,7 +20,14 @@ async def create_board(request: Request,
                        user_name: str,
                        session: AsyncSession = Depends(get_async_session)):
     query = insert(board_table).values(title=board_title)
+    user_id = get_user_id_from_token(request)
     await query_execute(query, session)
+
+    query = select(task_table).where(task_table.c.title == board_title)
+    result = await query_execute(query, session)
+    id = result.fetchone()[0]
+
+    await add_to_allowed_users(session,id, user_id)
     return "Board successfully created!"
 
 
@@ -50,16 +58,19 @@ async def delete_board(request: Request,
 async def get_all_boards(request: Request,
                          user_name: str,
                          session: AsyncSession = Depends(get_async_session)):
+    user_id = get_user_id_from_token(request)
     query = select(board_table)
     result = await query_execute(query, session)
     statuses_raw = result.fetchall()
-    statuses = []
+    statuses = []  
     for tup in statuses_raw:
         status_data = {
             "id": tup[0],
             "title": tup[1]
         }
-        statuses.append(status_data)
+        
+        if user_id in tup[0]:
+            statuses.append(status_data)
     return statuses
 
 
@@ -68,12 +79,16 @@ async def get_by_title(request: Request,
                        user_name: str,
                        title: str,
                        session: AsyncSession = Depends(get_async_session)):
+    user_id = get_user_id_from_token(request)
     query = select(board_table).where(board_table.c.title == title)
     result = await query_execute(query, session)
     board = result.fetchone()
     if board is None:
         return "404 not found!"
-    return {"id": board[0], "title": board[1]}
+    if user_id == board[0]:
+        return {"id": board[0], "title": board[1]}
+    else:
+        return "404 Not found!"
 
 
 @router.post("/update/{board_id}/title/{title}")
@@ -85,3 +100,56 @@ async def update_board(request: Request,
     query = update(board_table).where(board_table.c.id == board_id).values(title=title)
     await query_execute(query, session)
     return "'status code 200' if 'All ok!' else '500 internal server error!'"
+
+
+async def add_to_allowed_users(session: AsyncSession, board_id: int, user_id: int):
+    query = select(board_table).where(board_table.c.id == board_id)
+    result = await query_execute(query, session)
+
+    list_allowed_users: list = result.fetchone()[9]
+    print(list_allowed_users)
+    list_allowed_users.append(user_id)
+    query = update(board_table).where(board_table.c.id == board_id).values(
+        allowed_user_ids=list_allowed_users)
+    await query_execute(query, session)
+
+
+async def get_allowed_user_id(session: AsyncSession, board_id: int, user_id: int):
+    query = select(board_table).where(board_table.c.id == board_id)
+    result = await query_execute(query, session)
+    list_allowed_users: list = result.fetchone()[9]
+    return list_allowed_users
+
+
+async def remove_from_allowed_users(session: AsyncSession, task_id: int, user_id: int):
+    query = select(board_table).where(board_table.c.id == task_id)
+    result = await query_execute(query, session)
+
+    list_allowed_users: list = result.fetchone()[9]
+    print(list_allowed_users)
+    try:
+        list_allowed_users.remove(user_id)
+    except Exception as e:
+        ...
+    query = update(board_table).where(board_table.c.id == task_id).values(
+        allowed_user_ids=list_allowed_users)
+    await query_execute(query, session)
+
+
+@router.post("/add/{board_id}/user/{user_id}")
+async def add_user_to_board(request: Request,
+                       user_name: str,
+                       user_id: int,
+                       board_id: int,
+                       session: AsyncSession = Depends(get_async_session)):
+    await add_to_allowed_users(session, board_id, user_id)
+    return "All ok!"
+
+@router.post("/add/{board_id}/user/{user_id}")
+async def remove_user_from_board(request: Request,
+                       user_name: str,
+                       user_id: int,
+                       board_id: int,
+                       session: AsyncSession = Depends(get_async_session)):
+    await remove_from_allowed_users(session, board_id, user_id)
+    return "All ok!"
