@@ -1,5 +1,6 @@
 import datetime as dt
-from sqlalchemy import MetaData, Table, Column, Integer, String, ForeignKey, JSON, Boolean, TIMESTAMP, func, DateTime, ARRAY
+from sqlalchemy import MetaData, Table, Column, Integer, String, ForeignKey, JSON, Boolean, TIMESTAMP, func, DateTime, \
+    ARRAY, Text, LargeBinary
 
 from app.models.status import status
 from app.models.user import user
@@ -20,5 +21,10 @@ task = Table(
     Column("status_id", Integer, ForeignKey(status.c.id), nullable=True),
     Column("board_id", Integer, ForeignKey(board_table.c.id)),
     Column("parent_task_id", Integer, ForeignKey("task.id"), nullable=True),
-    Column("allowed_to_visible_user_ids", ARRAY(Integer))
+    Column("allowed_to_visible_user_ids", ARRAY(Integer)),
+    Column("text_content", Text, nullable=True),
+    Column("image_url", String, nullable=True),
+    Column("video_url", String, nullable=True),
+    Column("audio_url", String, nullable=True),
+    Column("image_content", LargeBinary, nullable=True),
 )
