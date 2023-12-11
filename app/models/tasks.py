@@ -18,7 +18,8 @@ task = Table(
     Column("start_timestamp", TIMESTAMP, arbitrary_types_allowed=True, nullable=False),
     Column("user_creator_id", Integer, ForeignKey(user.c.id)),
     Column("user_executor_id", Integer, ForeignKey(user.c.id)),
-    Column("status_id", Integer, ForeignKey(status.c.id), nullable=True)
     Column("status_id", Integer, ForeignKey(status.c.id), nullable=True),
     Column("board_id", Integer, ForeignKey(board_table.c.id)),
+    Column("parent_task_id", Integer, ForeignKey("task.id"), nullable=True),
+    Column("allowed_to_visible_user_ids", ARRAY(Integer))
 )
