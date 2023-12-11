@@ -23,3 +23,4 @@ class UserCreate(schemas.BaseUserCreate):
     is_active: bool = True
     is_superuser: bool = False
     is_verified: bool = False
+    register_timestamp: datetime.date
