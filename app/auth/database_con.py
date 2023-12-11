@@ -7,7 +7,7 @@ from sqlalchemy.ext.declarative import declarative_base
 from sqlalchemy.orm import DeclarativeBase, Mapped, mapped_column
 from sqlalchemy import Boolean, ForeignKey, Integer, String, DateTime, func, create_engine
 
-from config import DB_HOST, DB_NAME, DB_PASS, DB_PORT, DB_USER
+from app.config import DB_HOST, DB_NAME, DB_PASS, DB_PORT, DB_USER
 from app.models.user import role
 
 DATABASE_URL = f"postgresql+asyncpg://{DB_USER}:{DB_PASS}@{DB_HOST}:{DB_PORT}/{DB_NAME}"

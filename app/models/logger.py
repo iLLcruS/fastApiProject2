@@ -1,8 +1,6 @@
 import datetime as dt
 from sqlalchemy import MetaData, Table, Column, String, ForeignKey, func, DateTime, Integer, UniqueConstraint
 
-from .user import user
-
 metadata = MetaData()
 
 logger = Table(

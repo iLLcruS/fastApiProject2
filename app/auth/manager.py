@@ -6,7 +6,7 @@ from fastapi_users import BaseUserManager, IntegerIDMixin, exceptions, models, s
 from sqlalchemy.ext.asyncio import AsyncSession
 
 from app.core.custom_routers_func import log_operation
-from config import SECRET_KEY_JWT_VERIFICATION_RESET, MAIL_NAME, MAIL_PASSWORD
+from app.config import SECRET_KEY_JWT_VERIFICATION_RESET, MAIL_NAME, MAIL_PASSWORD
 from app.auth.database_con import User, get_user_db, engine
 
 SECRET = f"{SECRET_KEY_JWT_VERIFICATION_RESET}"
@@ -37,7 +37,7 @@ class UserManager(IntegerIDMixin, BaseUserManager[User, int]):
 
         await self.send_registration_notification(user)
 
-    async def send_email(message: MessageSchema):
+    async def send_email(self, message: MessageSchema):
         connection_config = ConnectionConfig(
             MAIL_USERNAME=MAIL_NAME,
             MAIL_PASSWORD=MAIL_PASSWORD,
@@ -80,7 +80,7 @@ class UserManager(IntegerIDMixin, BaseUserManager[User, int]):
 
         created_user = await self.user_db.create(user_dict)
 
-        await self.on_after_register(created_user, request)
+        await self.on_after_register(created_user)
 
         return created_user
 

@@ -1,5 +1,3 @@
-from typing import Generic
-
 from fastapi_users.authentication import CookieTransport, AuthenticationBackend
 from fastapi_users.authentication import JWTStrategy
 from sqlalchemy import insert
@@ -7,7 +5,7 @@ from sqlalchemy.ext.asyncio import AsyncSession
 
 from app.models.logger import logger
 from app.auth.database_con import engine
-from config import SECRET_KEY_JWT
+from app.config import SECRET_KEY_JWT
 
 cookie_transport = CookieTransport(cookie_name="trello", cookie_max_age=3600)
 

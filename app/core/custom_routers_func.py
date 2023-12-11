@@ -3,7 +3,7 @@ from sqlalchemy import insert
 from sqlalchemy.ext.asyncio import AsyncSession
 from app.auth.database_con import get_user_db, engine
 from app.models.logger import logger
-from config import SECRET_KEY_JWT
+from app.config import SECRET_KEY_JWT
 from fastapi import Request, HTTPException, Depends
 import jwt
 

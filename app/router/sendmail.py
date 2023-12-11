@@ -1,6 +1,6 @@
 from fastapi import APIRouter
 from fastapi_mail import MessageSchema, ConnectionConfig, FastMail, MessageType
-from config import MAIL_NAME, MAIL_PASSWORD
+from app.config import MAIL_NAME, MAIL_PASSWORD
 
 router = APIRouter(
     prefix="/mail",

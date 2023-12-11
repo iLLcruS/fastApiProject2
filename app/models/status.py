@@ -1,7 +1,4 @@
-import datetime as dt
-from sqlalchemy import MetaData, Table, Column, Integer, String, ForeignKey, JSON, Boolean, TIMESTAMP, func, DateTime
-
-from app.models.user import user
+from sqlalchemy import MetaData, Table, Column, Integer, String
 
 metadata = MetaData()
 

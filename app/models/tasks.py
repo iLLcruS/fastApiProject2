@@ -1,5 +1,5 @@
 import datetime as dt
-from sqlalchemy import MetaData, Table, Column, Integer, String, ForeignKey, JSON, Boolean, TIMESTAMP, func, DateTime, \
+from sqlalchemy import MetaData, Table, Column, Integer, String, ForeignKey, func, DateTime, \
     ARRAY, Text, LargeBinary
 
 from app.models.status import status

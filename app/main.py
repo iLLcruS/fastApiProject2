@@ -1,16 +1,15 @@
 
 from fastapi import FastAPI
-from fastapi_users import fastapi_users, FastAPIUsers
+from fastapi_users import FastAPIUsers
 
-from app.auth.auth import auth_backend
-from app.auth.database_con import User
-from app.auth.manager import get_user_manager
-from app.auth.schemas import UserRead, UserCreate
-from app.router.tasks import router as task_router
-from app.router.admin import router_admin as admin_router
-from app.router.board import router as board_router
-from app.router.sendmail import router as mail_router
-
+from .auth.auth import auth_backend
+from .auth.database_con import User, engine
+from .auth.manager import get_user_manager
+from .auth.schemas import UserRead, UserCreate
+from .router.tasks import router as task_router
+from .router.admin import router_admin as admin_router
+from .router.board import router as board_router
+from .router.sendmail import router as mail_router
 
 fastapi_users = FastAPIUsers[User, int](
     get_user_manager,

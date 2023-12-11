@@ -1,6 +1,6 @@
 from typing import List
 
-from fastapi import APIRouter, Depends, Request, UploadFile, HTTPException
+from fastapi import APIRouter, Depends, Request, HTTPException
 from fastapi.responses import RedirectResponse
 from fastapi_users_db_sqlalchemy import SQLAlchemyUserDatabase
 from pydantic import BaseModel
@@ -24,7 +24,6 @@ class Task(BaseModel):
     description: str
     keywords: List[str] = []
     user_executor_id: int
-    status_id: int
 
 
 class UpdateTask(BaseModel):
@@ -63,7 +62,6 @@ async def create_task(request: Request, user_name: str, task_data: Task,
         description=task_data.description,
         user_executor_id=task_data.user_executor_id,
         user_creator_id=user_id,
-        status_id=task_data.status_id,
         allowed_to_visible_user_ids=[user_id],
         keywords=task_data.keywords,
     )
@@ -82,7 +80,6 @@ async def create_task(request: Request, user_name: str, task_data: Task,
             description=subtask_description,
             user_creator_id=user_id,
             user_executor_id=task_data.user_executor_id,
-            status_id=task_data.status_id,
             parent_task_id=task_id,
             allowed_to_visible_user_ids=[user_id],
         )

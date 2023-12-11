@@ -1,4 +1,5 @@
-from sqlalchemy import MetaData, Table, Column, Integer, String, DateTime, ForeignKey, JSON, Boolean, func, TIMESTAMP
+from sqlalchemy import MetaData, Table, Column, Integer, String, DateTime, ForeignKey, JSON, Boolean, func, TIMESTAMP, \
+    insert
 
 
 metadata = MetaData()
@@ -8,7 +9,6 @@ role = Table(
     metadata,
     Column("id", Integer, primary_key=True),
     Column("name_role", String, nullable=False),
-    Column("permissions", JSON),
 )
 
 user = Table(
