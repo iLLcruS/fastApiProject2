@@ -1,6 +1,8 @@
 
 from fastapi import FastAPI
 from fastapi_users import FastAPIUsers
+from fastapi.responses import RedirectResponse
+from starlette.staticfiles import StaticFiles
 
 from .auth.auth import auth_backend
 from .auth.database_con import User, engine
@@ -20,6 +22,17 @@ app = FastAPI(
     title="Trello(demo)"
 )
 
+app.mount("/static", StaticFiles(directory="static"), name="static")
+
+
+@app.get("/")
+async def main_page():
+    redirect_url = "/docs"
+
+    response = RedirectResponse(url=redirect_url)
+    return response
+
+
 app.include_router(
     fastapi_users.get_auth_router(auth_backend),
     prefix="/auth/jwt",
@@ -35,9 +48,8 @@ app.include_router(
 app.include_router(
     task_router
 )
-
 app.include_router(
-    admin_router
+    status_router
 )
 app.include_router(
     board_router

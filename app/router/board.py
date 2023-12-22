@@ -9,7 +9,7 @@ from app.core.custom_routers_func import get_user_id_from_token
 
 router = APIRouter(
 
-    prefix="/board/{user_name}",
+    prefix="/board",
     tags=["board"],
 )
 
@@ -17,7 +17,6 @@ router = APIRouter(
 @router.post("/create/{board_title}")
 async def create_board(request: Request,
                        board_title: str,
-                       user_name: str,
                        session: AsyncSession = Depends(get_async_session)):
     query = insert(board_table).values(title=board_title)
     user_id = get_user_id_from_token(request)
@@ -25,9 +24,7 @@ async def create_board(request: Request,
 
     query = select(task_table).where(task_table.c.title == board_title)
     result = await query_execute(query, session)
-    id = result.fetchone()[0]
 
-    await add_to_allowed_users(session,id, user_id)
     return "Board successfully created!"
 
 
@@ -35,7 +32,6 @@ async def create_board(request: Request,
 async def set_board_to_task(request: Request,
                             task_id: int,
                             board_id: int,
-                            user_name: str,
                             session: AsyncSession = Depends(get_async_session)):
     query = update(task_table).where(task_table.c.id == task_id).values(board_id=board_id)
     await query_execute(query, session)
@@ -45,7 +41,6 @@ async def set_board_to_task(request: Request,
 @router.delete("/delete/{board_id}")
 async def delete_board(request: Request,
                        board_id: int,
-                       user_name: str,
                        session: AsyncSession = Depends(get_async_session)):
     query = update(task_table).where(task_table.c.board_id == board_id).values(board_id=None)
     await query_execute(query, session)
@@ -56,19 +51,18 @@ async def delete_board(request: Request,
 
 @router.get("/all")
 async def get_all_boards(request: Request,
-                         user_name: str,
                          session: AsyncSession = Depends(get_async_session)):
     user_id = get_user_id_from_token(request)
     query = select(board_table)
     result = await query_execute(query, session)
     statuses_raw = result.fetchall()
-    statuses = []  
+    statuses = []
     for tup in statuses_raw:
         status_data = {
             "id": tup[0],
             "title": tup[1]
         }
-        
+
         if user_id in tup[0]:
             statuses.append(status_data)
     return statuses
@@ -76,7 +70,6 @@ async def get_all_boards(request: Request,
 
 @router.get("/get/title/{title}")
 async def get_by_title(request: Request,
-                       user_name: str,
                        title: str,
                        session: AsyncSession = Depends(get_async_session)):
     user_id = get_user_id_from_token(request)
@@ -93,7 +86,6 @@ async def get_by_title(request: Request,
 
 @router.post("/update/{board_id}/title/{title}")
 async def update_board(request: Request,
-                       user_name: str,
                        title: str,
                        board_id: int,
                        session: AsyncSession = Depends(get_async_session)):
@@ -138,18 +130,17 @@ async def remove_from_allowed_users(session: AsyncSession, task_id: int, user_id
 
 @router.post("/add/{board_id}/user/{user_id}")
 async def add_user_to_board(request: Request,
-                       user_name: str,
-                       user_id: int,
-                       board_id: int,
-                       session: AsyncSession = Depends(get_async_session)):
+                            user_id: int,
+                            board_id: int,
+                            session: AsyncSession = Depends(get_async_session)):
     await add_to_allowed_users(session, board_id, user_id)
     return "All ok!"
 
+
 @router.post("/add/{board_id}/user/{user_id}")
 async def remove_user_from_board(request: Request,
-                       user_name: str,
-                       user_id: int,
-                       board_id: int,
-                       session: AsyncSession = Depends(get_async_session)):
+                                 user_id: int,
+                                 board_id: int,
+                                 session: AsyncSession = Depends(get_async_session)):
     await remove_from_allowed_users(session, board_id, user_id)
     return "All ok!"
